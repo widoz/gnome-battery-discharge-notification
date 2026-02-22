@@ -89,6 +89,18 @@ export default class BatteryLowNotifierExtension extends Extension {
     this._notificationSource = null;
     this._hookedPowerToggle = null;
     this._originalPowerToggleSync = null;
+    this._settingsChangedIds = [];
+
+    // When thresholds are changed via prefs, silently re-evaluate all
+    // discharging devices so that lastNotifiedLevel is updated to reflect
+    // the new threshold without sending a duplicate notification.
+    for (const key of ["low-threshold", "critical-threshold"]) {
+      this._settingsChangedIds.push(
+        this._settings.connect(`changed::${key}`, () =>
+          this._reevaluateDevicesSilently(),
+        ),
+      );
+    }
 
     this._init().catch((e) =>
       console.error(`[BatteryLowNotifier] Initialization error: ${e.message}`),
@@ -98,6 +110,10 @@ export default class BatteryLowNotifierExtension extends Extension {
 
   disable() {
     this._unhookBatteryIndicator();
+
+    for (const id of this._settingsChangedIds ?? [])
+      this._settings?.disconnect(id);
+    this._settingsChangedIds = [];
 
     for (const [, entry] of this._devices) {
       if (entry.signalId && entry.proxy)
@@ -141,10 +157,8 @@ export default class BatteryLowNotifierExtension extends Extension {
   _hookBatteryIndicator() {
     // GNOME 45+: Main.panel.statusArea.quickSettings is the QuickSettings
     // aggregate; _system is the SystemStatus.Indicator instance from system.js.
-    const systemIndicator =
-      Main.panel.statusArea.quickSettings?._system;
-    const powerToggle =
-      systemIndicator?._systemItem?.powerToggle;
+    const systemIndicator = Main.panel.statusArea.quickSettings?._system;
+    const powerToggle = systemIndicator?._systemItem?.powerToggle;
 
     if (!powerToggle) {
       console.warn(
@@ -183,7 +197,10 @@ export default class BatteryLowNotifierExtension extends Extension {
         targetFillLevel = Math.min(naturalFillLevel, 10);
       } else if (percentage <= lowThreshold) {
         // Amber — make sure we're in the warning icon range.
-        targetFillLevel = Math.min(naturalFillLevel, GNOME_AMBER_FILL_THRESHOLD);
+        targetFillLevel = Math.min(
+          naturalFillLevel,
+          GNOME_AMBER_FILL_THRESHOLD,
+        );
       } else if (naturalFillLevel <= GNOME_AMBER_FILL_THRESHOLD) {
         // Above our threshold but GNOME would pick an amber icon: suppress it.
         targetFillLevel = GNOME_AMBER_FILL_THRESHOLD + 10; // 30
@@ -322,6 +339,55 @@ export default class BatteryLowNotifierExtension extends Extension {
     console.log(`[BatteryLowNotifier] Stopped monitoring: ${objectPath}`);
   }
 
+  /**
+   * Compute the alert level the device is currently in, or null if above all
+   * thresholds.  Pure function of current proxy state + settings; no side
+   * effects.
+   */
+  _currentAlertLevel(proxy) {
+    if (!this._settings) return null;
+    if (proxy.State !== DeviceState.DISCHARGING) return null;
+    const pct = proxy.Percentage;
+    const low = this._settings.get_int("low-threshold");
+    const critical = this._settings.get_int("critical-threshold");
+    if (pct <= critical) return Level.CRITICAL;
+    if (pct <= low) return Level.LOW;
+    return null;
+  }
+
+  /**
+   * Called whenever a threshold setting changes.  Re-evaluates every device
+   * and silently advances lastNotifiedLevel if the battery is already below
+   * the new threshold — prevents a settings change from triggering a
+   * duplicate notification on the next battery tick.
+   */
+  _reevaluateDevicesSilently() {
+    for (const [objectPath, entry] of this._devices) {
+      const wantedLevel = this._currentAlertLevel(entry.proxy);
+
+      if (wantedLevel === null) {
+        // Battery is now above all thresholds; reset so the next crossing
+        // sends a fresh notification.
+        entry.lastNotifiedLevel = null;
+        continue;
+      }
+
+      // Advance lastNotifiedLevel to at least wantedLevel without notifying,
+      // so the dedup logic in _evaluateDevice suppresses a duplicate.
+      if (
+        entry.lastNotifiedLevel === null ||
+        (entry.lastNotifiedLevel === Level.LOW &&
+          wantedLevel === Level.CRITICAL)
+      ) {
+        console.log(
+          `[BatteryLowNotifier] Threshold changed — suppressing duplicate ` +
+            `${wantedLevel} notification for ${objectPath}`,
+        );
+        entry.lastNotifiedLevel = wantedLevel;
+      }
+    }
+  }
+
   _evaluateDevice(objectPath, entry) {
     if (!this._settings) return;
 
@@ -341,12 +407,7 @@ export default class BatteryLowNotifierExtension extends Extension {
       return;
     }
 
-    const lowThreshold = this._settings.get_int("low-threshold");
-    const criticalThreshold = this._settings.get_int("critical-threshold");
-
-    let wantedLevel = null;
-    if (percentage <= criticalThreshold) wantedLevel = Level.CRITICAL;
-    else if (percentage <= lowThreshold) wantedLevel = Level.LOW;
+    const wantedLevel = this._currentAlertLevel(proxy);
 
     // Above both thresholds — nothing to do
     if (wantedLevel === null) return;
