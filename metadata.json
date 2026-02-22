@@ -1,0 +1,9 @@
+{
+  "uuid": "battery-low-notifier@example.com",
+  "name": "Battery Low Notifier",
+  "description": "Sends a system notification when the battery charge falls below a configurable percentage threshold.",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "version": 1,
+  "url": "https://github.com/example/battery-low-notifier",
+  "settings-schema": "org.gnome.shell.extensions.battery-low-notifier"
+}

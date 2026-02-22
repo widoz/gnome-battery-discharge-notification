@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.battery-low-notifier"
+          path="/org/gnome/shell/extensions/battery-low-notifier/">
+
+    <key name="low-threshold" type="i">
+      <default>20</default>
+      <summary>Low Battery Threshold (%)</summary>
+      <description>
+        Send a notification when battery percentage drops at or below this value.
+        Valid range: 1–99.
+      </description>
+    </key>
+
+    <key name="critical-threshold" type="i">
+      <default>10</default>
+      <summary>Critical Battery Threshold (%)</summary>
+      <description>
+        Send an urgent notification when battery percentage drops at or below this value.
+        Valid range: 1–99.
+      </description>
+    </key>
+
+    <key name="sticky-notifications" type="b">
+      <default>true</default>
+      <summary>Sticky Notifications</summary>
+      <description>
+        When enabled, notification banners stay on screen until the user
+        explicitly dismisses them. When disabled, banners auto-hide after
+        a few seconds (the notification still remains in the panel).
+      </description>
+    </key>
+
+  </schema>
+</schemalist>
