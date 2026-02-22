@@ -11,10 +11,13 @@ percentage thresholds.
 | Feature | Detail |
 |---|---|
 | **Two thresholds** | Separate *Low* (warning) and *Critical* (urgent) levels |
-| **Smart cooldown** | Configurable minimum gap between repeated notifications |
+| **Per-session dedup** | Each threshold fires at most once per discharge session |
+| **Auto-reset** | After plugging in, the extension re-arms for the next discharge |
+| **Live threshold sync** | Changing thresholds in prefs never triggers a duplicate notification |
+| **Sticky notifications** | Banners stay on screen until dismissed (configurable) |
+| **Topbar icon alignment** | The status bar amber icon switches at your custom thresholds, not GNOME's hardcoded ones |
 | **Hot-plug support** | Detects batteries added/removed at runtime via UPower |
 | **Charge-aware** | Notifications only fire while the battery is *discharging* |
-| **Auto-reset** | After plugging in, the extension re-arms for the next discharge |
 | **Preferences UI** | Native Adwaita preferences window (GTK4) |
 
 ---
@@ -83,9 +86,9 @@ Or use the **Extensions** app / **GNOME Tweaks**.
 
 | Setting | Default | Description |
 |---|---|---|
-| Low Battery Threshold | 20 % | Trigger a *warning* notification |
-| Critical Battery Threshold | 10 % | Trigger an *urgent* notification |
-| Notification Cooldown | 300 s | Minimum seconds between repeated notifications at the same level |
+| Low Battery Threshold | 20 % | Trigger a *warning* notification (once per discharge session) |
+| Critical Battery Threshold | 10 % | Trigger an *urgent* notification (once per discharge session) |
+| Sticky Notifications | On | Keep the banner visible until you explicitly dismiss it |
 
 > **Tip:** Keep Critical < Low, otherwise the preferences UI will highlight
 > the rows in red as a visual warning.
@@ -101,18 +104,23 @@ GNOME Shell
        │    EnumerateDevices()
        │    signal DeviceAdded / DeviceRemoved
        │
-       └─ Per-battery Gio.DBusProxy → org.freedesktop.UPower.Device
-            g-properties-changed  (Percentage, State)
-            + GLib.timeout (60 s safety-net poll)
-                   │
-                   ▼
-            _evaluateDevice()
-              State == DISCHARGING?
-              Percentage ≤ threshold?
-              Cooldown elapsed?
-                   │ yes
-                   ▼
-            Main.notify(title, body)   ← GNOME Shell notification
+       ├─ Per-battery Gio.DBusProxy → org.freedesktop.UPower.Device
+       │    g-properties-changed  (Percentage, State)
+       │           │
+       │           ▼
+       │    _evaluateDevice()
+       │      State == DISCHARGING?
+       │      Percentage ≤ threshold?
+       │      Already notified at this level this session?
+       │           │ no duplicate
+       │           ▼
+       │    MessageTray.Notification   ← GNOME Shell notification
+       │    (sticky if sticky-notifications is on)
+       │
+       └─ PowerToggle._sync (monkey-patched)
+            Re-maps battery fill-level so the topbar amber icon
+            switches at your Low/Critical thresholds instead of
+            GNOME's hardcoded per-decade rounding
 ```
 
 ---
