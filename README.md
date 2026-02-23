@@ -8,17 +8,17 @@ percentage thresholds.
 
 ## Features
 
-| Feature | Detail |
-|---|---|
-| **Two thresholds** | Separate *Low* (warning) and *Critical* (urgent) levels |
-| **Per-session dedup** | Each threshold fires at most once per discharge session |
-| **Auto-reset** | After plugging in, the extension re-arms for the next discharge |
-| **Live threshold sync** | Changing thresholds in prefs never triggers a duplicate notification |
-| **Sticky notifications** | Banners stay on screen until dismissed (configurable) |
+| Feature                   | Detail                                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| **Two thresholds**        | Separate _Low_ (warning) and _Critical_ (urgent) levels                                  |
+| **Per-session dedup**     | Each threshold fires at most once per discharge session                                  |
+| **Auto-reset**            | After plugging in, the extension re-arms for the next discharge                          |
+| **Live threshold sync**   | Changing thresholds in prefs never triggers a duplicate notification                     |
+| **Sticky notifications**  | Banners stay on screen until dismissed (configurable)                                    |
 | **Topbar icon alignment** | The status bar amber icon switches at your custom thresholds, not GNOME's hardcoded ones |
-| **Hot-plug support** | Detects batteries added/removed at runtime via UPower |
-| **Charge-aware** | Notifications only fire while the battery is *discharging* |
-| **Preferences UI** | Native Adwaita preferences window (GTK4) |
+| **Hot-plug support**      | Detects batteries added/removed at runtime via UPower                                    |
+| **Charge-aware**          | Notifications only fire while the battery is _discharging_                               |
+| **Preferences UI**        | Native Adwaita preferences window (GTK4)                                                 |
 
 ---
 
@@ -47,6 +47,7 @@ chmod +x install.sh
 ```
 
 The script will:
+
 1. Copy all files to `~/.local/share/gnome-shell/extensions/`
 2. Compile the GSettings schema with `glib-compile-schemas`
 3. Enable the extension via `gnome-extensions enable`
@@ -67,10 +68,10 @@ gnome-extensions enable "$UUID"
 
 ### Restart GNOME Shell
 
-| Session | Command |
-|---|---|
-| **X11** | Press `Alt+F2`, type `r`, press `Enter` |
-| **Wayland** | Log out and log back in |
+| Session     | Command                                 |
+| ----------- | --------------------------------------- |
+| **X11**     | Press `Alt+F2`, type `r`, press `Enter` |
+| **Wayland** | Log out and log back in                 |
 
 ---
 
@@ -84,11 +85,11 @@ gnome-extensions prefs battery-low-notifier@example.com
 
 Or use the **Extensions** app / **GNOME Tweaks**.
 
-| Setting | Default | Description |
-|---|---|---|
-| Low Battery Threshold | 20 % | Trigger a *warning* notification (once per discharge session) |
-| Critical Battery Threshold | 10 % | Trigger an *urgent* notification (once per discharge session) |
-| Sticky Notifications | On | Keep the banner visible until you explicitly dismiss it |
+| Setting                    | Default | Description                                                   |
+| -------------------------- | ------- | ------------------------------------------------------------- |
+| Low Battery Threshold      | 20 %    | Trigger a _warning_ notification (once per discharge session) |
+| Critical Battery Threshold | 10 %    | Trigger an _urgent_ notification (once per discharge session) |
+| Sticky Notifications       | On      | Keep the banner visible until you explicitly dismiss it       |
 
 > **Tip:** Keep Critical < Low, otherwise the preferences UI will highlight
 > the rows in red as a visual warning.
