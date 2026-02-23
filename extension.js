@@ -116,8 +116,7 @@ export default class BatteryLowNotifierExtension extends Extension {
     this._settingsChangedIds = [];
 
     for (const [, entry] of this._devices) {
-      if (entry.signalId && entry.proxy)
-        entry.proxy.disconnectSignal(entry.signalId);
+      if (entry.signalId && entry.proxy) entry.proxy.disconnect(entry.signalId);
     }
     this._devices.clear();
 
